@@ -117,3 +117,26 @@ docker run -d -e POSTGRES_USER=bubsi -e POSTGRES_PASSWORD=RGKLLUN4x5Qu7a -e POST
 ```
 
 Vor dem Docker-Container ist noch ein Revers-Proxy mit nginx geschaltet. Er verwandelt den einen HTTP-Service in vier HTTPS-Services. Der hier beschriebene Port sowie die User-Daten sind natürlich frei erfunden 😉.
+
+Um das ganze noch besser wartbar zu machen, gibt es ein docker-compose-Skript um den Tile-Server einzurichten: [docker-compose.yml](docker-compose.yml).
+
+Wichtig hier ist die ENV-Datei [database.env](database.env). Hier sind unsere Zugangsdaten zum PostGIS-Server. Leider kommt der PostGIS-Server durcheinander, wenn wir hier die Environment-Variable $POSTGRE_HOST setzen. Daher ist sie  als extra *env* im *docker-compose.yml* enthalten. Auch interessant: Als Hostname wird der Servicename *postgis* verwendet, nicht der Containername *tile-postgis*.
+
+Um den Server zu starten fahren wir Service für Service hoch:
+
+```bash
+# PostGIS-Server
+docker-compose up -d postgis
+
+# Importer
+docker-compose up osm2pgsql
+
+# Tile-Server
+docker-compose up -d mapnik
+```
+
+Der Importer wird auch hier ohne *-d* gestartet, da er nach dem Ausführen wieder heruntergefahren wird. Um ein neues PBF zu importieren, führen wir einfach obigen Befehl erneut aus:
+
+```bash
+docker-compose up osm2pgsql
+```

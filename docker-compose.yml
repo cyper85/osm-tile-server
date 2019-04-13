@@ -1,0 +1,40 @@
+version: '3' 
+services: 
+  postgis: 
+    container_name: tile-postgis
+    volumes: 
+      - tile-db:/var/lib/postgresql/data
+    env_file: .dbenv
+    image: cyper85/postgis:alpine
+  osm2pgsql: 
+    container_name: tile-osm2pgsql 
+    image: cyper85/osm2pgsql:alpine
+    links:
+      - postgis
+    depends_on:
+      - postgis
+    env:
+      - POSTGRES_HOST=postgis
+      - PBF_URL=https://download.geofabrik.de/europe/germany/thueringen-latest.osm.pbf
+    env_file:
+      - .env
+  mapnik: 
+    container_name: tile-mapnik 
+    ports: 
+      - 12345:80
+    volumes: 
+      - tile-cache:/var/lib/mod_tile 
+    image: cyper85/mapnik
+    links:
+      - postgis
+    depends_on:
+      - postgis
+    env:
+      - POSTGRES_HOST=postgis
+    env_file: 
+      - .env
+volumes:
+  tile-cache:
+    driver: local
+  tile-db:
+    driver: local
