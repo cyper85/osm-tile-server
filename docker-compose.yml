@@ -5,7 +5,7 @@ services:
     volumes: 
       - tile-db:/var/lib/postgresql/data
     env_file: .dbenv
-    image: cyper85/postgis:alpine
+    image: postgis/postgis:13-master
   osm2pgsql: 
     container_name: tile-osm2pgsql 
     image: cyper85/osm2pgsql:alpine
