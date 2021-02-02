@@ -1,29 +1,12 @@
 # Eigener Tile-Server
 
 ## Vorgeplänkel
-2018 kam die DSGVO. Natürlich völlig überraschend und alles verändert sich (eine aktive Sarkasmuserkennung sollte hier 
-anschlagen ;)). Ich habe mir dabei meine eigenen Webseiten angeschaut und überlegt, wo ich Nutzerdaten potentiell an 
-Dritte weitergebe. Grundsätzlich ist jede extern eingebundene Resource kritisch zu sehen, denn jedesmal, wenn ein 
-Nutzer auf meine Website schaut wird auch ein Request an die Server eines dritten gesendet. Dieser sieht den User, 
-kann über Cookies ihn über viele Seiten tracken und die gesammelten Daten gewinnbringend weiterverkaufen.
-
-Wer sich heute Websites anschaut sieht sehr schnell, wieviele externe Resourcen eingebunden sind. Angefangen bei 
-Javascript- und CSS-Bibliotheken aus dem CDN, über Bilder, WebFonts und Videos bin hin zu Socialmedia-Interaktionen 
-und klassischen Webanalysen.
-
-Die Dritt-Anbieter-Bibliotheken hoste ich selbst. Web-Analytic wird mit einem selbstgehosteten und konfigurierten 
-[Matomo](https://matomo.org) (ehemals Piwik) realisiert. Fehlte nur noch eins: Die Kartenkacheln von OpenStreetMap.
+Aufgrund der seit 2018 geltenden DSGVO habe ich versucht die eingebundenen Ressourcen von Drittanbietern weiter zu
+reduzieren, um keine Nutzerdaten an Dritte unbeabsichtigt weiterzugeben.
 
 Mein erster Versuch war plump. Ich baute einen ReverseProxy auf meinem eigenen Server und nutzte dennoch weiterhin den 
-kostenlosen Service von OpenStreetMap. 2018, quasi mit dem Hype um die DSGVO, stieg ich bei Docker ein und fand das 
-System der Micro-Services faszinierend. Ein Beispiel-[NGINX-Server](https://hub.docker.com/_/nginx) für eine statische 
-Website war sehr schnell eingerichtet, doch ein eigener Tile-Server war eine ganz andere Nummer. Durch meine 
-Datenauswertung und -aufbereitung für die Stadtpläne von [Erfurt](https://map4erfurt.de), 
-[Ilmenau](https://stadtplan-ilmenau.de) und [Jena](https://map4jena.de) habe ich mir bereits viele Grundlagen im 
-Bereich um PostGIS und Datenimport aus Openstreetmap angeeignet. Es musste damit doch *nur noch* ein Tile-Server her.
-
-Klingt einfach, war es aber nicht. Dazu kamen meine anfänglichen geringen Skills im Docker-Bereich. Irgendwann stieß 
-ich auf das fertige Image Openstreetmap-Tile-Server von [overv](https://github.com/Overv/openstreetmap-tile-server). 
+kostenlosen Service von OpenStreetMap. 2018 stieß ich auf das fertige Image Openstreetmap-Tile-Server von 
+[overv](https://github.com/Overv/openstreetmap-tile-server). 
 Es war ein All-Inclusive Angebot. Ein Container der alles beinhaltet. Die Lernkurve war niedrig und der Service 
 innerhalb zweier Abende auf dem Stadtplan integriert. Da war er, mein aller erster Tile-Server.
 
@@ -31,9 +14,9 @@ Im Laufe der Zeit kamen aber Probleme auf bei der Nutzung des Containers. Angefa
 musste jedesmal den Container deaktivieren (und damit den Tile-Server abschalten) um neue Daten in die Datenbank 
 einspielen zu können. Eine solche Downtime verhinderte, dass ich die Daten automatisiert regelmäßig aktualisierte. 
 Auch widersprach das All-In-One Prinzip den dezidierten Microservices. Zum überlaufen kam das Fass im Winter 2019, als 
-das Image nicht mehr von Docker-Hub beziehbar wurde. Dank des Github-Repositories konnte ich mir das Image lokal 
-erneut bauen und verwenden, jedoch arbeitete ich wieder an meinem Plan ein eigenes Image zu erstellen. Am Ende waren 
-es vier und steigend.
+das Image nicht mehr von Docker-Hub beziehbar wurde. 
+
+Aus diesen Erfahrungen entstanden eigene Images um die Aufgaben auf verschiedene Container zu verteilen.
 
 ## Die verschiedenen Server
 Der Tile-Server braucht drei Komponenten. Zum ersten ist da die **Datenbank**. In unserem Fall eine 
@@ -58,9 +41,10 @@ Für den Import wird [osm2pgsql](https://github.com/openstreetmap/osm2pgsql) ver
 und Tile-Container muss der Importer nur während des Imports laufen. Wenn er seine Arbeit fertiggestellt hat kann er 
 gestoppt werden und ohne RAM- und CPU-Verbrauch auf seinen nächsten Einsatz warten.
 
-Der Importer ist sehr einfach gestrickt. Als ENV gibt man ihm eine URL zu einem PBF mit. Die Datei wird heruntergeladen 
-und via osm2pgsql mit den aktuekllen Schema vom Carto-Projekt in den PostgreSQL-Server transferiert. Der Server steht 
-sowohl als [Ubuntu](https://de.wikipedia.org/wiki/Ubuntu), als auch als Alpine-Version zur Verfügung.
+Der Importer ist sehr einfach gestrickt. Als Umgebungsvariable gibt man ihm eine URL zu einem PBF mit. Die Datei wird 
+heruntergeladen und mittels osm2pgsql mit den aktuekllen Schema vom Carto-Projekt in den PostgreSQL-Server 
+transferiert. Der Server steht sowohl als [Ubuntu](https://de.wikipedia.org/wiki/Ubuntu), als auch als Alpine-Version 
+zur Verfügung.
 
 #### Installation
 Wir brauchen einen PostGIS-Server und ein gemeinsames Netzwerk, in dem beide Container sind. Außerdem sollten wir dem 
@@ -76,12 +60,11 @@ docker network create postgis-net
 docker run --detach --name test-postgis --network postgis-net postgis/postgis
 
 # Install a osm2pgsql-instance
-docker run \
-       --env POSTGRES_HOST=test-postgis \
-       --env PBF_URL=https://download.geofabrik.de/europe/germany/thueringen-latest.osm.pbf \
-       --name test-osm2pgsql \
-       --network postgis-net \
-       cyper85/osm2pgsql
+docker run --env POSTGRES_HOST=test-postgis \
+           --env PBF_URL=https://download.geofabrik.de/europe/germany/thueringen-latest.osm.pbf \
+           --name test-osm2pgsql \
+           --network postgis-net \
+           cyper85/osm2pgsql
 ```
 
 Port, Datenbankname, -nutzer und -passwort sind die Standardeinstellungen von Postgres. Wenn man diese im 
@@ -112,13 +95,24 @@ den Containernamen der Datenbank um sich mit dieser zu verbinden.
 docker network create postgis-net
 
 # Install a postgis-instance
-docker run --detach --name test-postgis --network postgis-net postgis/postgis
+docker run --detach \
+           --name test-postgis \
+           --network postgis-net \
+           postgis/postgis
 
 # Install a osm2pgsql-instance
-docker run --env POSTGRES_HOST=test-postgis --name test-osm2pgsql --network postgis-net cyper85/osm2pgsql
+docker run --env POSTGRES_HOST=test-postgis \
+           --name test-osm2pgsql \
+           --network postgis-net \
+           cyper85/osm2pgsql
 
 # Install a mapnik-instance
-docker run --detach --env POSTGRES_HOST=test-postgis --name test-mapnik --network postgis-net --port 80:80 cyper85/mapnik
+docker run --detach \
+           --env POSTGRES_HOST=test-postgis \
+           --name test-mapnik \
+           --network postgis-net \
+           --port 80:80 \
+           cyper85/mapnik
 ```
 Startet man den Container kann es ein paar Minuten dauern, bis der Server betriebsbereit ist.
 
@@ -130,7 +124,7 @@ Nun müssen wir alles noch in unsere Website einbauen. Mittels [Leaflet](https:/
 ```html
 <div id="map"></div>
 <script>
-var map = L.map('map').setView([0, 0], 3);
+let map = L.map('map').setView([0, 0], 3);
 L.tileLayer("http://<your-ip-adress-here>:80/tile/{z}/{x}/{y}.png", {
   attribution: "Daten: OSM.org (<a class='extern' href='https://opendatacommons.org/licenses/odbl/'>ODbL</a>) | Darstellung: <a class='extern' href='https://openstreetmap.org/'>OSM.org</a> (<a class='extern' href='https://creativecommons.org/licenses/by-sa/2.0/de/'>CC-By-SA-2.0</a>)",
   maxZoom: 20
