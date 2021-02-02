@@ -83,12 +83,12 @@ docker start test-osm2pgsql
 ### Der Tile-Server
 Bisher wurde nur vorbereitet, jetzt wollen wir unsere Früchte ernten.
 
-Als Webserver kommt ein Apache zum Einsatz. Als Renderer wird renderd mit den aktuellem Mapnik-Style verwendet. 
+Als Webserver kommt ein Apache zum Einsatz. Als Renderer wird *rendered* mit den aktuellem Mapnik-Style verwendet. 
 Außerdem werden gerenderte Tiles in einem Cache abgelegt.
 
 Seit der [FOSSGIS 2020](https://www.fossgis-konferenz.de/2020/) und einem 
 [Vortrag von Frederik Ramm](https://media.ccc.de/v/fossgis2020-4711-openstreetmap-tileserver-mit-tirex) steht außerdem
-ein Image zur Verfügung, welches mit Tyrex rendert (*cyper85/mapnik:tyrex*).
+ein Image zur Verfügung, welches mit Tirex rendert (*cyper85/mapnik:tirex*).
 
 #### Installation
 Der Tile-Server muss im selben Netzwerk, wie unser Datenbank-Container sein. Außerdem braucht er, analog zum Importer, 
